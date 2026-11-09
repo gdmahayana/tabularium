@@ -1,6 +1,6 @@
 # ADR-0001: Penyimpanan dataset dengan model observasi (format panjang)
 
-- **Status:** Diusulkan (menunggu validasi Spike A)
+- **Status:** Diterima (Spike A lulus 2026-11-09)
 - **Tanggal:** 2026-11-09
 
 ## Konteks
@@ -23,4 +23,10 @@ opsi A/C dipertimbangkan lagi hanya bila ada kegagalan terukur.
 - Dua dataset berstruktur beda (PKK dan Aset Desa dummy) sama-sama termodelkan tanpa DDL dinamis
 
 ## Bukti / hasil uji
-(diisi setelah spike)
+Spike A lulus 2026-11-09:
+- 312 observasi (PKK 72 + Aset Desa 240) di SQLite 4.0 KB
+- Agregasi jumlah per kecamatan per tahun: 0.28 ms
+- Anomali (binaan > kelompok) terdeteksi lewat JOIN sederhana
+- Sel kosong tercatat dengan null_reason
+- Dua dataset berbeda struktur termodelkan tanpa DDL dinamis
+- Skrip: tests/spike_a_observation_model.py
