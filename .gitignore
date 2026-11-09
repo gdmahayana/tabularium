@@ -1,0 +1,38 @@
+# Data operasional dan rahasia TIDAK boleh masuk repo
+*.sqlite
+*.sqlite3
+*.db
+*.db-wal
+*.db-shm
+data/
+backups/
+.env
+*.key
+
+# Berkas dokumen internal / data nyata
+*.real.*
+private/
+
+# Rust / Tauri
+target/
+src-tauri/target/
+src-tauri/gen/
+
+# Node
+node_modules/
+dist/
+build/
+.svelte-kit/
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+sidecar/dist/
+sidecar/build/
+
+# Editor / OS
+.vscode/settings.json
+.DS_Store
+Thumbs.db

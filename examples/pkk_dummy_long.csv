@@ -1,0 +1,25 @@
+kode_desa,desa,tahun,jumlah_kelompok_pkk,jumlah_kelompok_binaan,jumlah_kader
+K01D01,Desa Contoh A1,2024,16,10,48
+K01D01,Desa Contoh A1,2025,10,5,40
+K01D02,Desa Contoh A2,2024,17,13,68
+K01D02,Desa Contoh A2,2025,18,14,
+K01D03,Desa Contoh A3,2024,9,4,27
+K01D03,Desa Contoh A3,2025,7,4,21
+K01D04,Desa Contoh A4,2024,16,15,48
+K01D04,Desa Contoh A4,2025,11,11,55
+K02D01,Desa Contoh B1,2024,15,12,45
+K02D01,Desa Contoh B1,2025,15,11,45
+K02D02,Desa Contoh B2,2024,6,0,24
+K02D02,Desa Contoh B2,2025,17,14,51
+K02D03,Desa Contoh B3,2024,9,7,27
+K02D03,Desa Contoh B3,2025,8,11,30
+K02D04,Desa Contoh B4,2024,14,9,84
+K02D04,Desa Contoh B4,2025,14,10,70
+K02D05,Desa Contoh B5,2024,9,6,45
+K02D05,Desa Contoh B5,2025,15,10,45
+K03D01,Desa Contoh C1,2024,18,18,54
+K03D01,Desa Contoh C1,2025,6,5,24
+K03D02,Desa Contoh C2,2024,18,18,72
+K03D02,Desa Contoh C2,2025,18,14,54
+K03D03,Desa Contoh C3,2024,17,14,85
+K03D03,Desa Contoh C3,2025,19,14,57
