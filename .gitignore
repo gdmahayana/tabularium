@@ -1,39 +1,23 @@
-# Data operasional dan rahasia TIDAK boleh masuk repo
-*.sqlite
-*.sqlite3
-*.db
-*.db-wal
-*.db-shm
-data/
-backups/
-.env
-*.key
+node_modules
 
-# Berkas dokumen internal / data nyata
-*.real.*
-private/
+# Output
+.output
+.vercel
+.netlify
+.wrangler
+/.svelte-kit
+/build
 
-# Rust / Tauri
-target/
-src-tauri/target/
-src-tauri/gen/
-
-# Node
-node_modules/
-dist/
-build/
-.svelte-kit/
-
-# Python
-.venv/
-__pycache__/
-*.pyc
-.pytest_cache/
-sidecar/dist/
-sidecar/build/
-
-# Editor / OS
-.vscode/settings.json
+# OS
 .DS_Store
 Thumbs.db
-tests/*.sqlite
+
+# Env
+.env
+.env.*
+!.env.example
+!.env.test
+
+# Vite
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*

@@ -1,22 +1,30 @@
 {
-  "profile_id": "karangasem-sdi-sektoral",
-  "version": "0.1.0",
-  "status": "draft - cocokkan dengan portal asli di awal tiap periode pelaporan",
-  "portal": "Satu Data Kabupaten Karangasem (menu Data Sektoral)",
-  "year_dimension": "satu dimensi tahun data (kolom Tahun terduplikasi pada tabel portal tidak ditiru)",
-  "hierarchy": ["bidang", "sub_bidang", "kategori_laporan", "judul_kolom"],
-  "report_status_flow": ["Draft Laporan", "Status Laporan"],
-  "entries": [
-    {
-      "bidang": "CONTOH BIDANG (dummy)",
-      "sub_bidang": "CONTOH SUB BIDANG (dummy)",
-      "kategori_laporan": "Pembinaan PKK (dummy)",
-      "columns": [
-        {"judul_kolom": "Jumlah Kelompok PKK", "satuan_unit": "Kelompok",
-         "source": {"type": "variable", "ref": "jumlah_kelompok_pkk"}, "aggregation": "sum_all_villages"},
-        {"judul_kolom": "Persentase Kelompok PKK Binaan", "satuan_unit": "Persen",
-         "source": {"type": "indicator", "ref": "persen_kelompok_pkk_binaan"}, "aggregation": "ratio_of_sums"}
-      ]
-    }
-  ]
+	"profile_id": "karangasem-sdi-sektoral",
+	"version": "0.1.0",
+	"status": "draft - cocokkan dengan portal asli di awal tiap periode pelaporan",
+	"portal": "Satu Data Kabupaten Karangasem (menu Data Sektoral)",
+	"year_dimension": "satu dimensi tahun data (kolom Tahun terduplikasi pada tabel portal tidak ditiru)",
+	"hierarchy": ["bidang", "sub_bidang", "kategori_laporan", "judul_kolom"],
+	"report_status_flow": ["Draft Laporan", "Status Laporan"],
+	"entries": [
+		{
+			"bidang": "CONTOH BIDANG (dummy)",
+			"sub_bidang": "CONTOH SUB BIDANG (dummy)",
+			"kategori_laporan": "Pembinaan PKK (dummy)",
+			"columns": [
+				{
+					"judul_kolom": "Jumlah Kelompok PKK",
+					"satuan_unit": "Kelompok",
+					"source": { "type": "variable", "ref": "jumlah_kelompok_pkk" },
+					"aggregation": "sum_all_villages"
+				},
+				{
+					"judul_kolom": "Persentase Kelompok PKK Binaan",
+					"satuan_unit": "Persen",
+					"source": { "type": "indicator", "ref": "persen_kelompok_pkk_binaan" },
+					"aggregation": "ratio_of_sums"
+				}
+			]
+		}
+	]
 }

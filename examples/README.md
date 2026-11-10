@@ -1,4 +1,5 @@
 # Data Sintetis
+
 Semua nama dan angka **fiktif**. Dibuat ulang dengan `python3 examples/generate_dummy.py` (seed tetap).
 
 - `wilayah_dummy.csv`: master wilayah hierarkis (kecamatan → desa), 12 desa

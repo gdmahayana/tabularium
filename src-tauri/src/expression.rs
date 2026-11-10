@@ -22,26 +22,22 @@ pub enum EvalError {
 impl std::fmt::Display for EvalError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            EvalError::UnknownVar(v)   => write!(f, "Variabel tidak dikenal: {v}"),
-            EvalError::UnknownFn(n)    => write!(f, "Fungsi tidak dikenal: {n}"),
-            EvalError::WrongArgCount { func, expected, got }
-                => write!(f, "Fungsi {func} butuh {expected} argumen, dapat {got}"),
-            EvalError::ParseError(s)   => write!(f, "Kesalahan parse: {s}"),
+            EvalError::UnknownVar(v) => write!(f, "Variabel tidak dikenal: {v}"),
+            EvalError::UnknownFn(n) => write!(f, "Fungsi tidak dikenal: {n}"),
+            EvalError::WrongArgCount { func, expected, got } =>
+                write!(f, "Fungsi {func} butuh {expected} argumen, dapat {got}"),
+            EvalError::ParseError(s) => write!(f, "Kesalahan parse: {s}"),
         }
     }
 }
 
 pub type Context = HashMap<String, f64>;
 
-// ── Evaluator ────────────────────────────────────────────────────────────
-
 pub fn eval(expr: &Expr, ctx: &Context) -> Result<Option<f64>, EvalError> {
     match expr {
         Expr::Num(n) => Ok(Some(*n)),
-        Expr::Var(name) => {
-            ctx.get(name).copied().map(Some)
-                .ok_or_else(|| EvalError::UnknownVar(name.clone()))
-        }
+        Expr::Var(name) => ctx.get(name).copied().map(Some)
+            .ok_or_else(|| EvalError::UnknownVar(name.clone())),
         Expr::BinOp { op, lhs, rhs } => {
             let l = eval(lhs, ctx)?;
             let r = eval(rhs, ctx)?;
@@ -51,7 +47,7 @@ pub fn eval(expr: &Expr, ctx: &Context) -> Result<Option<f64>, EvalError> {
                     '-' => a - b,
                     '*' => a * b,
                     '/' => if b == 0.0 { return Ok(None); } else { a / b },
-                    _    => return Err(EvalError::ParseError(format!("Operator tidak dikenal: {op}"))),
+                    _ => return Err(EvalError::ParseError(format!("Operator tidak dikenal: {op}"))),
                 })),
                 _ => Ok(None),
             }
@@ -97,15 +93,13 @@ fn eval_call(name: &str, args: &[Expr], ctx: &Context) -> Result<Option<f64>, Ev
             let cond = eval(&args[0], ctx)?;
             match cond {
                 Some(v) if v != 0.0 => eval(&args[1], ctx),
-                Some(_)             => eval(&args[2], ctx),
-                None                => Ok(None),
+                Some(_) => eval(&args[2], ctx),
+                None => Ok(None),
             }
         }
         _ => Err(EvalError::UnknownFn(name.into())),
     }
 }
-
-// ── Parser ───────────────────────────────────────────────────────────────
 
 struct Parser { chars: Vec<char>, pos: usize }
 
@@ -202,23 +196,17 @@ pub fn parse(input: &str) -> Result<Expr, EvalError> {
     }
 }
 
-// ── Antarmuka publik ─────────────────────────────────────────────────────
-
 pub fn evaluate(formula: &str, ctx: &Context) -> Result<Option<f64>, EvalError> {
     let expr = parse(formula)?;
     eval(&expr, ctx)
 }
 
-// ── Tes ──────────────────────────────────────────────────────────────────
-
 #[cfg(test)]
 mod tests {
     use super::*;
-
     fn ctx(pairs: &[(&str, f64)]) -> Context {
         pairs.iter().map(|(k,v)| (k.to_string(), *v)).collect()
     }
-
     #[test] fn test_literal()   { assert_eq!(evaluate("42", &ctx(&[])), Ok(Some(42.0))); }
     #[test] fn test_add()       { assert_eq!(evaluate("a + b", &ctx(&[("a",3.0),("b",4.0)])), Ok(Some(7.0))); }
     #[test] fn test_div_zero()  { assert_eq!(evaluate("a / b", &ctx(&[("a",5.0),("b",0.0)])), Ok(None)); }
@@ -228,7 +216,6 @@ mod tests {
     #[test] fn test_if_true()   { assert_eq!(evaluate("if(a, b, c)", &ctx(&[("a",1.0),("b",99.0),("c",0.0)])), Ok(Some(99.0))); }
     #[test] fn test_unknown_var() { assert!(matches!(evaluate("x", &ctx(&[])), Err(EvalError::UnknownVar(_)))); }
     #[test] fn test_pkk_formula() {
-        // persen_kelompok_pkk_binaan = ratio(jumlah_kelompok_binaan, jumlah_kelompok_pkk) * 100
         let c = ctx(&[("jumlah_kelompok_binaan", 15.0),("jumlah_kelompok_pkk", 20.0)]);
         let result = evaluate("ratio(jumlah_kelompok_binaan, jumlah_kelompok_pkk) * 100", &c);
         assert_eq!(result, Ok(Some(75.0)));
