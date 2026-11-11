@@ -36,6 +36,10 @@ pub const MIGRATIONS: &[Migration] = &[
         name: "0002_audit_triggers",
         sql: include_str!("../../migrations/0002_audit_triggers.sql"),
     },
+    Migration {
+        name: "0003_import_quality",
+        sql: include_str!("../../migrations/0003_import_quality.sql"),
+    },
 ];
 
 /// SHA-256 dari isi SQL. Akhir baris dinormalisasi agar hasilnya sama di Windows dan Linux.
