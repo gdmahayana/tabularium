@@ -37,6 +37,7 @@ pub const MIGRATIONS: &[Migration] = &[
         sql: include_str!("../../migrations/0002_audit_triggers.sql"),
     },
     Migration {
+        version: 3,
         name: "0003_import_quality",
         sql: include_str!("../../migrations/0003_import_quality.sql"),
     },

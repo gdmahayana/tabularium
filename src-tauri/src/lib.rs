@@ -2,6 +2,7 @@
 pub mod commands;
 pub mod database;
 pub mod expression;
+pub mod sidecar;
 
 use tauri::Manager;
 
