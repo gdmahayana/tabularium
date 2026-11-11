@@ -34,6 +34,11 @@ pub fn run() {
             commands::cmd_restore_backup,
             commands::cmd_inspeksi_file,
             commands::cmd_baca_tabel,
+            commands::cmd_buat_sesi_impor,
+            commands::cmd_simpan_staging,
+            commands::cmd_simpan_unit_match,
+            commands::cmd_komit_impor,
+            commands::cmd_undo_batch,
         ])
         .setup(|app| {
             let data_dir = app.path().app_data_dir()

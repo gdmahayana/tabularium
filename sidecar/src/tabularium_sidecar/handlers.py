@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: AGPL-3.0-only
-import json, tempfile, pathlib
+import json, tempfile, pathlib, re
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment
 
@@ -70,7 +70,47 @@ def _read_table(params):
     fh.close()
     return {"out_path": str(out_path), "columns": list(df.columns), "row_count": len(df)}
 
-METHODS = {"inspect_file": _inspect_file, "read_table": _read_table, "generate_template": _generate_template}
+def _match_units(params):
+    names = params["names"]
+    units = params["units"]
+    results = []
+    unit_index = {u["name"].strip().lower(): u for u in units}
+    for raw in names:
+        clean = str(raw).strip()
+        norm = clean.lower()
+        norm = re.sub(r"^desa\s+", "", norm)
+        norm = re.sub(r"^kelurahan\s+", "", norm)
+        norm = re.sub(r"[\t ]+", " ", norm).strip()
+        matched = None
+        kind = "tidak_cocok"
+        if norm in unit_index:
+            matched = unit_index[norm]
+            kind = "persis" if clean == matched["name"] else "normalisasi"
+        else:
+            best, best_score = None, 0
+            for uname, u in unit_index.items():
+                score = _similarity(norm, uname)
+                if score > best_score:
+                    best_score, best = score, u
+            if best and best_score >= 0.7:
+                matched = best
+                kind = "saran"
+        results.append({
+            "source_name": raw,
+            "unit_id": matched["id"] if matched else None,
+            "unit_name": matched["name"] if matched else None,
+            "match_kind": kind,
+        })
+    return results
+
+def _similarity(a, b):
+    if not a or not b: return 0.0
+    set_a, set_b = set(a.split()), set(b.split())
+    if not set_a or not set_b: return 0.0
+    inter = set_a & set_b
+    return len(inter) / max(len(set_a), len(set_b))
+
+METHODS = {"inspect_file": _inspect_file, "read_table": _read_table, "generate_template": _generate_template, "match_units": _match_units}
 
 def dispatch(method, params):
     if method not in METHODS:

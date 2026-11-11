@@ -14,6 +14,7 @@ use tauri::State;
 
 use crate::sidecar::Sidecar;
 use serde_json::{json, Value};
+use crate::database::import_service::{self, KomitImporInput};
 use crate::database::{
     backup,
     dataset_service,
@@ -390,4 +391,74 @@ pub fn cmd_baca_tabel(
             "out_dir": out_dir,
         })),
     }
+}
+
+// ============================================================
+// IMPOR — COMMIT DAN UNDO
+// ============================================================
+
+#[tauri::command]
+pub fn cmd_buat_sesi_impor(
+    state: State<DbState>,
+    dataset_id: i64,
+    source_name: String,
+    source_sheet: Option<String>,
+    period_value: String,
+) -> Result<i64, String> {
+    let conn = kunci!(state);
+    import_service::buat_sesi_impor(
+        &conn, dataset_id, &source_name,
+        source_sheet.as_deref(), &period_value, PENGGUNA,
+    )
+}
+
+#[tauri::command]
+pub fn cmd_simpan_staging(
+    state: State<DbState>,
+    session_id: i64,
+    rows: Vec<serde_json::Value>,
+) -> Result<usize, String> {
+    let conn = kunci!(state);
+    import_service::simpan_staging_rows(&conn, session_id, &rows)
+}
+
+#[tauri::command]
+pub fn cmd_simpan_unit_match(
+    state: State<DbState>,
+    session_id: i64,
+    matches: Vec<serde_json::Value>,
+) -> Result<(), String> {
+    let conn = kunci!(state);
+    import_service::simpan_unit_match(&conn, session_id, &matches)
+}
+
+#[tauri::command]
+pub fn cmd_komit_impor(
+    state: State<DbState>,
+    session_id: i64,
+    dataset_id: i64,
+    period_value: String,
+    rows: Vec<serde_json::Value>,
+    col_variable_map: Vec<(String, i64, i64)>,
+    col_unit_wilayah: String,
+) -> Result<serde_json::Value, String> {
+    let mut conn = kunci!(state);
+    let hasil = import_service::komit_impor(&mut conn, KomitImporInput {
+        session_id, dataset_id, period_value, rows,
+        col_variable_map, col_unit_wilayah,
+    }, PENGGUNA)?;
+    Ok(serde_json::json!({
+        "batch_id": hasil.batch_id,
+        "inserted": hasil.inserted,
+        "skipped":  hasil.skipped,
+    }))
+}
+
+#[tauri::command]
+pub fn cmd_undo_batch(
+    state: State<DbState>,
+    batch_id: i64,
+) -> Result<i64, String> {
+    let mut conn = kunci!(state);
+    import_service::undo_batch(&mut conn, batch_id, PENGGUNA)
 }
