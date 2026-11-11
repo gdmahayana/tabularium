@@ -12,6 +12,8 @@ use std::sync::Mutex;
 use rusqlite::Connection;
 use tauri::State;
 
+use crate::sidecar::Sidecar;
+use serde_json::{json, Value};
 use crate::database::{
     backup,
     dataset_service,
@@ -32,12 +34,18 @@ pub struct DbState {
     pub conn: Mutex<Connection>,
     pub db_path: PathBuf,
     pub backup_dir: PathBuf,
+    pub sidecar: Option<Sidecar>,
 }
 
 impl DbState {
     pub fn buka(db_path: PathBuf, backup_dir: PathBuf) -> Result<Self, String> {
         let mut conn = migrations::open_and_migrate(&db_path)?;
-        Ok(Self { conn: Mutex::new(conn), db_path, backup_dir })
+        let sidecar_exe = std::env::current_exe().ok()
+            .and_then(|p| Some(p.parent()?.join("tabularium-sidecar")))
+            .map(|p| p.to_string_lossy().to_string())
+            .unwrap_or_else(|| "tabularium-sidecar".to_string());
+        let sidecar = Sidecar::spawn(&sidecar_exe).ok();
+        Ok(Self { conn: Mutex::new(conn), db_path, backup_dir, sidecar })
     }
 }
 
@@ -354,4 +362,32 @@ pub fn daftarkan(builder: tauri::Builder<tauri::Wry>) -> tauri::Builder<tauri::W
         cmd_daftar_backup,
         cmd_restore_backup,
     ])
+}
+// ============================================================
+// SIDECAR — IMPOR FILE
+// ============================================================
+
+#[tauri::command]
+pub fn cmd_inspeksi_file(state: State<DbState>, path: String) -> Result<Value, String> {
+    match &state.sidecar {
+        None => Err("Sidecar tidak tersedia. Impor Excel tidak dapat dijalankan.".to_string()),
+        Some(sc) => sc.call("inspect_file", json!({"path": path})),
+    }
+}
+
+#[tauri::command]
+pub fn cmd_baca_tabel(
+    state: State<DbState>,
+    path: String,
+    sheet: String,
+    out_dir: Option<String>,
+) -> Result<Value, String> {
+    match &state.sidecar {
+        None => Err("Sidecar tidak tersedia. Impor Excel tidak dapat dijalankan.".to_string()),
+        Some(sc) => sc.call("read_table", json!({
+            "path": path,
+            "sheet": sheet,
+            "out_dir": out_dir,
+        })),
+    }
 }

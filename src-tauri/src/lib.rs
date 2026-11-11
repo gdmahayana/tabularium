@@ -32,6 +32,8 @@ pub fn run() {
             commands::cmd_buat_backup,
             commands::cmd_daftar_backup,
             commands::cmd_restore_backup,
+            commands::cmd_inspeksi_file,
+            commands::cmd_baca_tabel,
         ])
         .setup(|app| {
             let data_dir = app.path().app_data_dir()
