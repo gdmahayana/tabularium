@@ -40,6 +40,8 @@ pub fn run() {
             commands::cmd_komit_impor,
             commands::cmd_undo_batch,
             commands::cmd_validasi_impor,
+            commands::cmd_simpan_observasi,
+            commands::cmd_ubah_observasi,
         ])
         .setup(|app| {
             let data_dir = app.path().app_data_dir()

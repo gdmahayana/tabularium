@@ -490,3 +490,97 @@ pub fn cmd_validasi_impor(
         "issues":  issues,
     }))
 }
+
+// ============================================================
+// INPUT MANUAL
+
+// ============================================================
+
+#[tauri::command]
+pub fn cmd_simpan_observasi(
+    state: State<DbState>,
+    dataset_id: i64,
+    variable_id: i64,
+    unit_id: i64,
+    period_value: String,
+    dimension_value_id: Option<i64>,
+    value_status: String,
+    value_num: Option<f64>,
+    value_text: Option<String>,
+    value_date: Option<String>,
+    reason: Option<String>,
+) -> Result<i64, String> {
+    use rusqlite::params;
+    use crate::database::audit::{buat_batch, catat_audit, EntriAudit};
+    let mut conn = kunci!(state);
+    let tx = conn.transaction()
+        .map_err(|e| format!("Gagal memulai transaksi: {e}"))?;
+    let batch_id = buat_batch(&tx, "manual", reason.as_deref(), PENGGUNA)?;
+    let dim_id = dimension_value_id.unwrap_or(0);
+    let now = crate::database::import_service::now_iso();
+    tx.execute(
+        "INSERT INTO observation (dataset_id,variable_id,unit_id,period_value,dimension_value_id,value_status,value_num,value_text,value_date,batch_id,created_at,updated_at) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?11)",
+        params![dataset_id, variable_id, unit_id, period_value, dim_id,
+                value_status, value_num, value_text, value_date, batch_id, now],
+    ).map_err(|e| format!("Gagal menyimpan observasi: {e}"))?;
+    let obs_id = tx.last_insert_rowid();
+    let new_val = value_num.map(|n| n.to_string())
+        .or_else(|| value_text.clone())
+        .or_else(|| value_date.clone())
+        .unwrap_or_else(|| value_status.clone());
+    catat_audit(&tx, &EntriAudit {
+        entity_type: "observation", entity_id: obs_id,
+        dataset_id: Some(dataset_id),
+        action: "create", field: None, old_value: None,
+        new_value: Some(&new_val),
+        reason: reason.as_deref(),
+        batch_id: Some(batch_id), changed_by: PENGGUNA,
+    })?;
+    tx.commit().map_err(|e| format!("Gagal commit input manual: {e}"))?;
+    Ok(obs_id)
+}
+
+#[tauri::command]
+pub fn cmd_ubah_observasi(
+    state: State<DbState>,
+    obs_id: i64,
+    value_status: String,
+    value_num: Option<f64>,
+    value_text: Option<String>,
+    value_date: Option<String>,
+    reason: Option<String>,
+) -> Result<(), String> {
+    use rusqlite::params;
+    use crate::database::audit::{buat_batch, catat_audit, EntriAudit};
+    let mut conn = kunci!(state);
+    let (old_status, old_num, old_text, old_date, dataset_id): (String, Option<f64>, Option<String>, Option<String>, i64) =
+        conn.query_row(
+            "SELECT value_status,value_num,value_text,value_date,dataset_id FROM observation WHERE id=?1",
+            [obs_id], |r| Ok((r.get(0)?,r.get(1)?,r.get(2)?,r.get(3)?,r.get(4)?)),
+        ).map_err(|_| format!("Observasi id {obs_id} tidak ditemukan."))?;
+    let tx = conn.transaction()
+        .map_err(|e| format!("Gagal memulai transaksi: {e}"))?;
+    let batch_id = buat_batch(&tx, "koreksi", reason.as_deref(), PENGGUNA)?;
+    let now = crate::database::import_service::now_iso();
+    tx.execute(
+        "UPDATE observation SET value_status=?1,value_num=?2,value_text=?3,value_date=?4,updated_at=?5 WHERE id=?6",
+        params![value_status, value_num, value_text, value_date, now, obs_id],
+    ).map_err(|e| format!("Gagal mengubah observasi: {e}"))?;
+    let old_val = old_num.map(|n| n.to_string())
+        .or(old_text).or(old_date)
+        .unwrap_or(old_status);
+    let new_val = value_num.map(|n| n.to_string())
+        .or_else(|| value_text.clone())
+        .or_else(|| value_date.clone())
+        .unwrap_or_else(|| value_status.clone());
+    catat_audit(&tx, &EntriAudit {
+        entity_type: "observation", entity_id: obs_id,
+        dataset_id: Some(dataset_id),
+        action: "update", field: Some("value"),
+        old_value: Some(&old_val), new_value: Some(&new_val),
+        reason: reason.as_deref(),
+        batch_id: Some(batch_id), changed_by: PENGGUNA,
+    })?;
+    tx.commit().map_err(|e| format!("Gagal commit ubah observasi: {e}"))?;
+    Ok(())
+}

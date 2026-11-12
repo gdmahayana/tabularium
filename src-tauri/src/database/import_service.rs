@@ -17,7 +17,7 @@ pub fn buat_sesi_impor(
     period_value: &str,
     oleh: &str,
 ) -> Result<i64, String> {
-    let now = chrono_now();
+    let now = now_iso();
     conn.execute(
         "INSERT INTO import_session (dataset_id,source_name,source_sheet,period_value,created_by,created_at) VALUES (?1,?2,?3,?4,?5,?6)",
         params![dataset_id, source_name, source_sheet, period_value, oleh, now],
@@ -82,7 +82,7 @@ pub fn komit_impor(
         Some(&format!("Impor sesi {}", input.session_id)), oleh)?;
     let mut inserted = 0i64;
     let mut skipped = 0i64;
-    let now = chrono_now();
+    let now = now_iso();
     for row in &input.rows {
         let unit_name = row[&input.col_unit_wilayah].as_str().unwrap_or("");
         let unit_id: i64 = tx.query_row(
@@ -171,13 +171,13 @@ pub fn undo_batch(
     }
     tx.execute(
         "UPDATE batch SET undone_at=?1 WHERE id=?2",
-        params![chrono_now(), batch_id],
+        params![now_iso(), batch_id],
     ).map_err(|e| format!("Gagal tandai batch sebagai undo: {e}"))?;
     tx.commit().map_err(|e| format!("Gagal commit undo: {e}"))?;
     Ok(n)
 }
 
-fn chrono_now() -> String {
+pub fn now_iso() -> String {
     use std::time::{SystemTime, UNIX_EPOCH};
     let d = SystemTime::now().duration_since(UNIX_EPOCH).unwrap_or_default();
     let secs = d.as_secs();
