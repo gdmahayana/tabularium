@@ -462,3 +462,31 @@ pub fn cmd_undo_batch(
     let mut conn = kunci!(state);
     import_service::undo_batch(&mut conn, batch_id, PENGGUNA)
 }
+
+#[tauri::command]
+pub fn cmd_validasi_impor(
+    state: State<DbState>,
+    session_id: i64,
+    dataset_id: i64,
+    col_variable_map: Vec<(String, i64, String)>,
+    col_unit_wilayah: String,
+    period_value: String,
+) -> Result<serde_json::Value, String> {
+    let conn = kunci!(state);
+    use crate::database::validation_service;
+    let hasil = validation_service::jalankan_validasi(
+        &conn, session_id, dataset_id,
+        &col_variable_map, &col_unit_wilayah, &period_value,
+    )?;
+    let issues: Vec<_> = hasil.issues.iter().map(|x| serde_json::json!({
+        "row_no":   x.row_no,
+        "unit_ref": x.unit_ref,
+        "severity": x.severity,
+        "message":  x.message,
+    })).collect();
+    Ok(serde_json::json!({
+        "result":  hasil.result,
+        "run_id":  hasil.run_id,
+        "issues":  issues,
+    }))
+}

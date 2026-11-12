@@ -39,6 +39,7 @@ pub fn run() {
             commands::cmd_simpan_unit_match,
             commands::cmd_komit_impor,
             commands::cmd_undo_batch,
+            commands::cmd_validasi_impor,
         ])
         .setup(|app| {
             let data_dir = app.path().app_data_dir()
