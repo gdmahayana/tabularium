@@ -95,6 +95,26 @@ export interface RefUnit {
   parent_id: number | null;
 }
 
+
+// ---- Tipe impor ----
+export interface IsuValidasi {
+  row_no: number | null;
+  unit_ref: string | null;
+  severity: string;
+  message: string;
+}
+export interface HasilValidasi {
+  result: string;
+  run_id: number;
+  issues: IsuValidasi[];
+}
+export interface HasilKomit {
+  batch_id: number;
+  inserted: number;
+  skipped: number;
+}
+
+// ---- Impor ----
 // ---- Dataset ----
 export const api = {
   dataset: {
@@ -129,5 +149,23 @@ export const api = {
     buat:   ()                   => invoke<string>('cmd_buat_backup'),
     daftar: ()                   => invoke<string[]>('cmd_daftar_backup'),
     restore:(backupPath: string)  => invoke<void>('cmd_restore_backup', { backupPath }),
+  },
+  impor: {
+    inspeksiFile:   (path: string) =>
+      invoke<Record<string, { columns: string[]; row_count: number; preview: Record<string,unknown>[] }>>('cmd_inspeksi_file', { path }),
+    bacaTabel:      (path: string, sheet: string, outDir?: string) =>
+      invoke<{ out_path: string; columns: string[]; row_count: number }>('cmd_baca_tabel', { path, sheet, outDir }),
+    buatSesi:       (datasetId: number, sourceName: string, sourceSheet: string|null, periodValue: string) =>
+      invoke<number>('cmd_buat_sesi_impor', { datasetId, sourceName, sourceSheet, periodValue }),
+    simpanStaging:  (sessionId: number, rows: unknown[]) =>
+      invoke<number>('cmd_simpan_staging', { sessionId, rows }),
+    simpanUnitMatch:(sessionId: number, matches: unknown[]) =>
+      invoke<void>('cmd_simpan_unit_match', { sessionId, matches }),
+    validasi:       (sessionId: number, datasetId: number, colVariableMap: [string,number,string][], colUnitWilayah: string, periodValue: string) =>
+      invoke<HasilValidasi>('cmd_validasi_impor', { sessionId, datasetId, colVariableMap, colUnitWilayah, periodValue }),
+    komit:          (sessionId: number, datasetId: number, periodValue: string, rows: unknown[], colVariableMap: [string,number,number][], colUnitWilayah: string) =>
+      invoke<HasilKomit>('cmd_komit_impor', { sessionId, datasetId, periodValue, rows, colVariableMap, colUnitWilayah }),
+    undoBatch:      (batchId: number) =>
+      invoke<number>('cmd_undo_batch', { batchId }),
   },
 };

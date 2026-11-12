@@ -4,4 +4,5 @@ import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig({
   plugins: [tailwindcss(), sveltekit()],
+  resolve: { alias: { '$lib': '/home/mahayana/Projects/tabularium/src/lib' } },
 });

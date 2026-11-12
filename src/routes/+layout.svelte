@@ -6,6 +6,7 @@
   const menu = [
     { href: '/',         label: 'Ringkasan' },
     { href: '/katalog',  label: 'Katalog Data' },
+    { href: '/impor',    label: 'Impor Data' },
   ];
 </script>
 
@@ -29,7 +30,7 @@
       {/each}
     </nav>
     <div class="px-4 py-3 text-xs border-t" style="color:var(--muted);border-color:var(--border)">
-      v0.1.0 · Tahap 1
+      v0.1.0 · Tahap 2
     </div>
   </aside>
 
