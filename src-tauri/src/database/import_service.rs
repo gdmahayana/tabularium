@@ -205,3 +205,153 @@ fn days_to_ymd(mut days: u64) -> (u64, u64, u64) {
     }
     (y, mo, days + 1)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use rusqlite::Connection;
+    use crate::database::migrations;
+    use serde_json::json;
+
+    fn db() -> Connection {
+        let mut c = Connection::open_in_memory().unwrap();
+        migrations::configure(&c).unwrap();
+        migrations::run_migrations(&mut c).unwrap();
+        c
+    }
+
+    fn seed_master(c: &Connection) {
+        c.execute("INSERT INTO ref_unit(id,code,name,level) VALUES(1,'51','Bali','provinsi')", []).unwrap();
+        c.execute("INSERT INTO ref_unit(id,code,name,level,parent_id) VALUES(2,'5108','Karangasem','kabupaten',1)", []).unwrap();
+        c.execute("INSERT INTO ref_unit(id,code,name,level,parent_id) VALUES(10,'510801','Rendang','kecamatan',2)", []).unwrap();
+        c.execute("INSERT INTO ref_unit(id,code,name,level,parent_id) VALUES(100,'5108010001','Rendang','desa',10)", []).unwrap();
+        c.execute("INSERT INTO ref_unit(id,code,name,level,parent_id) VALUES(101,'5108010002','Pempatan','desa',10)", []).unwrap();
+        c.execute("INSERT INTO ref_unit(id,code,name,level,parent_id) VALUES(102,'5108010003','Nongan','desa',10)", []).unwrap();
+    }
+
+    fn seed_dataset(c: &mut Connection) -> (i64, i64, i64) {
+        c.execute("INSERT OR IGNORE INTO ref_period_type(code,name,sort_order) VALUES('tahunan','Tahunan',1)", []).unwrap();
+        c.execute("INSERT INTO dataset(name,period_type) VALUES('PKK Test','tahunan')", []).unwrap();
+        let ds_id = c.last_insert_rowid();
+        c.execute("INSERT INTO variable(dataset_id,name,code,data_type,is_required,sort_order) VALUES(?1,'Jumlah Kelompok','jumlah_kelompok_pkk','integer',1,1)", [ds_id]).unwrap();
+        let var1 = c.last_insert_rowid();
+        c.execute("INSERT INTO variable(dataset_id,name,code,data_type,is_required,sort_order) VALUES(?1,'Jumlah Kader','jumlah_kader_pkk','integer',1,2)", [ds_id]).unwrap();
+        let var2 = c.last_insert_rowid();
+        (ds_id, var1, var2)
+    }
+
+    #[test]
+    fn golden_impor_tiga_desa() {
+        let mut c = db();
+        seed_master(&c);
+        let (ds_id, var1, var2) = seed_dataset(&mut c);
+
+        // Staging rows (simulasi hasil sidecar)
+        let rows = vec![
+            json!({"unit_wilayah": "Rendang",  "jumlah_kelompok_pkk": 10, "jumlah_kader_pkk": 40}),
+            json!({"unit_wilayah": "Pempatan", "jumlah_kelompok_pkk": 7,  "jumlah_kader_pkk": 28}),
+            json!({"unit_wilayah": "Nongan",   "jumlah_kelompok_pkk": 6,  "jumlah_kader_pkk": 24}),
+        ];
+
+        let session_id = buat_sesi_impor(&c, ds_id, "golden.xlsx", Some("Sheet1"), "2024", "uji").unwrap();
+        simpan_staging_rows(&c, session_id, &rows).unwrap();
+
+        // Unit match manual
+        let matches = vec![
+            json!({"source_name": "Rendang",  "unit_id": 100, "match_kind": "persis"}),
+            json!({"source_name": "Pempatan", "unit_id": 101, "match_kind": "persis"}),
+            json!({"source_name": "Nongan",   "unit_id": 102, "match_kind": "persis"}),
+        ];
+        simpan_unit_match(&c, session_id, &matches).unwrap();
+
+        // Validasi
+        use crate::database::validation_service;
+        let col_map = vec![
+            ("jumlah_kelompok_pkk".to_string(), var1, "integer".to_string()),
+            ("jumlah_kader_pkk".to_string(),    var2, "integer".to_string()),
+        ];
+        let hasil_val = validation_service::jalankan_validasi(
+            &c, session_id, ds_id, &col_map, "unit_wilayah", "2024",
+        ).unwrap();
+        assert_eq!(hasil_val.result, "lolos", "Validasi harus lolos: {:?}",
+            hasil_val.issues.iter().map(|x| &x.message).collect::<Vec<_>>());
+
+        // Komit
+        let hasil = komit_impor(&mut c, KomitImporInput {
+            session_id,
+            dataset_id: ds_id,
+            period_value: "2024".to_string(),
+            rows: rows.clone(),
+            col_variable_map: vec![
+                ("jumlah_kelompok_pkk".to_string(), var1, 0),
+                ("jumlah_kader_pkk".to_string(),    var2, 0),
+            ],
+            col_unit_wilayah: "unit_wilayah".to_string(),
+        }, "uji").unwrap();
+
+        // Golden assertions
+        assert_eq!(hasil.inserted, 6, "Harus 6 observasi (3 desa x 2 variabel)");
+        assert_eq!(hasil.skipped, 0);
+
+        let n: i64 = c.query_row(
+            "SELECT COUNT(*) FROM observation WHERE dataset_id=?1 AND period_value='2024'",
+[ds_id], |r| r.get(0),
+).unwrap();
+assert_eq!(n, 6);
+
+// Audit harus tercatat
+let na: i64 = c.query_row(
+"SELECT COUNT(*) FROM audit_log WHERE action='create' AND entity_type='observation'",
+            [], |r| r.get(0),
+        ).unwrap();
+        assert_eq!(na, 6);
+
+        // Undo — semua observasi hilang
+        undo_batch(&mut c, hasil.batch_id, "uji").unwrap();
+        let n2: i64 = c.query_row(
+            "SELECT COUNT(*) FROM observation WHERE dataset_id=?1",
+            [ds_id], |r| r.get(0),
+        ).unwrap();
+        assert_eq!(n2, 0, "Setelah undo semua observasi harus terhapus");
+
+        // Batch ditandai undone
+        let undone: Option<String> = c.query_row(
+            "SELECT undone_at FROM batch WHERE id=?1",
+            [hasil.batch_id], |r| r.get(0),
+        ).unwrap();
+        assert!(undone.is_some(), "batch.undone_at harus terisi setelah undo");
+    }
+
+    #[test]
+    fn komit_duplikat_dilewati() {
+        let mut c = db();
+        seed_master(&c);
+        let (ds_id, var1, _) = seed_dataset(&mut c);
+        let rows = vec![
+            json!({"unit_wilayah": "Rendang", "jumlah_kelompok_pkk": 10}),
+        ];
+        let sess1 = buat_sesi_impor(&c, ds_id, "a.xlsx", None, "2024", "uji").unwrap();
+        simpan_staging_rows(&c, sess1, &rows).unwrap();
+        simpan_unit_match(&c, sess1, &[json!({"source_name":"Rendang","unit_id":100,"match_kind":"persis"})]).unwrap();
+        let h1 = komit_impor(&mut c, KomitImporInput {
+            session_id: sess1, dataset_id: ds_id, period_value: "2024".to_string(),
+            rows: rows.clone(),
+            col_variable_map: vec![("jumlah_kelompok_pkk".to_string(), var1, 0)],
+            col_unit_wilayah: "unit_wilayah".to_string(),
+        }, "uji").unwrap();
+        assert_eq!(h1.inserted, 1);
+
+        // Impor kedua dengan data sama — harus skip
+        let sess2 = buat_sesi_impor(&c, ds_id, "b.xlsx", None, "2024", "uji").unwrap();
+        simpan_staging_rows(&c, sess2, &rows).unwrap();
+        simpan_unit_match(&c, sess2, &[json!({"source_name":"Rendang","unit_id":100,"match_kind":"persis"})]).unwrap();
+        let h2 = komit_impor(&mut c, KomitImporInput {
+            session_id: sess2, dataset_id: ds_id, period_value: "2024".to_string(),
+            rows: rows.clone(),
+            col_variable_map: vec![("jumlah_kelompok_pkk".to_string(), var1, 0)],
+            col_unit_wilayah: "unit_wilayah".to_string(),
+        }, "uji").unwrap();
+        assert_eq!(h2.inserted, 0);
+        assert_eq!(h2.skipped, 1);
+    }
+}

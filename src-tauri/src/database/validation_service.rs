@@ -53,7 +53,7 @@ pub fn jalankan_validasi(
         for (col, _var_id, tipe) in col_variable_map {
             let val = &row[col];
             if val.is_null() { continue; }
-            if tipe == "numerik" {
+            if tipe == "integer" || tipe == "decimal" {
                 if val.as_f64().is_none() {
                     if let Some(s) = val.as_str() {
                         if !s.trim().is_empty() {
