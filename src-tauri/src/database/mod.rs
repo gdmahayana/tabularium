@@ -8,3 +8,4 @@ pub mod unit_service;
 pub mod variable_service;
 pub mod import_service;
 pub mod validation_service;
+pub mod indicator_service;
