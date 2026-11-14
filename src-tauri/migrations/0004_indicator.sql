@@ -69,3 +69,8 @@ BEGIN
       AND indicator_id IN (SELECT indicator_id FROM indicator_variable
                            WHERE variable_id = OLD.variable_id);
 END;
+CREATE TABLE indicator_label (
+    indicator_id INTEGER NOT NULL REFERENCES indicator(id) ON DELETE CASCADE,
+    label_id     INTEGER NOT NULL REFERENCES label(id),
+    PRIMARY KEY (indicator_id, label_id)
+) STRICT;
