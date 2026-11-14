@@ -12,3 +12,4 @@ pub mod indicator_service;
 pub mod label_service;
 pub mod portal_service;
 pub mod mapping_service;
+pub mod sdi_service;

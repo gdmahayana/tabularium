@@ -51,6 +51,11 @@ pub const MIGRATIONS: &[Migration] = &[
         name: "0005_portal_mapping",
         sql: include_str!("../../migrations/0005_portal_mapping.sql"),
     },
+    Migration {
+        version: 6,
+        name: "0006_sdi_workbench",
+        sql: include_str!("../../migrations/0006_sdi_workbench.sql"),
+    },
 ];
 
 /// SHA-256 dari isi SQL. Akhir baris dinormalisasi agar hasilnya sama di Windows dan Linux.
