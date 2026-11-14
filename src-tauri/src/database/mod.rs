@@ -13,3 +13,4 @@ pub mod label_service;
 pub mod portal_service;
 pub mod mapping_service;
 pub mod sdi_service;
+pub mod export_service;
