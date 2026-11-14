@@ -6,7 +6,9 @@
   const menu = [
     { href: '/',         label: 'Ringkasan' },
     { href: '/katalog',  label: 'Katalog Data' },
-    { href: '/impor',    label: 'Impor Data' },
+    { href: '/impor',      label: 'Impor Data' },
+    { href: '/indikator',   label: 'Indikator' },
+    { href: '/sdi',         label: 'Lembar Input SDI' },
   ];
 </script>
 

@@ -16,6 +16,11 @@
         total_var += vars.length;
       }
       jumlah_variable = total_var;
+      try {
+        const inds = await api.indicator.daftar();
+        jumlah_indikator = inds.length;
+        jumlah_usang = await api.indicator.jumlahUsang();
+      } catch (_) {}
     } catch (e) {
       console.error(e);
     } finally {

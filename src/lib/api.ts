@@ -116,6 +116,148 @@ export interface HasilKomit {
 
 // ---- Impor ----
 // ---- Dataset ----
+
+// ---- Tipe Tahap 3 ----
+
+export interface IndicatorVariabel {
+  variable_id: number;
+  alias: string;
+}
+
+export interface IndicatorInput {
+  code: string;
+  name: string;
+  definition?: string;
+  interpretation?: string;
+  unit?: string;
+  formula: string;
+  aggregation_rule?: string;
+  variables: IndicatorVariabel[];
+}
+
+export interface Indicator {
+  id: number;
+  code: string;
+  name: string;
+  definition: string | null;
+  interpretation: string | null;
+  unit: string | null;
+  formula: string;
+  aggregation_rule: string;
+  method_version: number;
+  archived_at: string | null;
+  created_at: string;
+  updated_at: string;
+  variables: IndicatorVariabel[];
+}
+
+export interface HasilIndikator {
+  indicator_id: number;
+  region_id: number;
+  region_name: string;
+  region_level: string;
+  period_value: string;
+  value_num: number | null;
+  value_status: string;
+  is_stale: boolean;
+  method_version: number;
+  computed_at: string;
+}
+
+export interface LabelItem {
+  id: number;
+  name: string;
+  description: string | null;
+}
+
+export interface MappingInput {
+  profile_id: string;
+  bidang: string;
+  sub_bidang: string;
+  kategori: string;
+  judul_kolom: string;
+  satuan_unit: string;
+  source_type: string;
+  source_ref: string;
+  aggregation: string;
+  unit_factor?: number;
+}
+
+export interface Mapping extends MappingInput {
+  id: number;
+  unit_factor: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TandaiSelInput {
+  profile_id: string;
+  period_value: string;
+  bidang: string;
+  sub_bidang: string;
+  kategori: string;
+  judul_kolom: string;
+  nilai_saat_input?: number;
+  catatan?: string;
+  operator: string;
+}
+
+export interface SelLembar {
+  profile_id: string;
+  period_value: string;
+  bidang: string;
+  sub_bidang: string;
+  kategori: string;
+  judul_kolom: string;
+  satuan_unit: string;
+  source_type: string;
+  source_ref: string;
+  aggregation: string;
+  unit_factor: number;
+  nilai: number | null;
+  nilai_tampil: string | null;
+  value_status: string;
+  is_stale: boolean;
+  sudah_diinput: boolean;
+  perlu_diperbarui: boolean;
+  input_at: string | null;
+  catatan: string | null;
+}
+
+export interface RingkasanLembar {
+  total_sel: number;
+  sudah_diinput: number;
+  perlu_diperbarui: number;
+  belum_diinput: number;
+  nilai_kosong: number;
+}
+
+export interface SubmissionInput {
+  profile_id: string;
+  period_value: string;
+  status: string;
+  catatan?: string;
+  bukti_ref?: string;
+  operator: string;
+}
+
+export interface Submission {
+  id: number;
+  profile_id: string;
+  period_value: string;
+  status: string;
+  catatan: string | null;
+  bukti_ref: string | null;
+  operator: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EntitasSektoral {
+  dataset_ids: number[];
+  variable_ids: number[];
+  indicator_ids: number[];
+}
 export const api = {
   dataset: {
     buat:   (input: BuatDatasetInput)              => invoke<Dataset>('cmd_buat_dataset', { input }),
@@ -149,6 +291,50 @@ export const api = {
     buat:   ()                   => invoke<string>('cmd_buat_backup'),
     daftar: ()                   => invoke<string[]>('cmd_daftar_backup'),
     restore:(backupPath: string)  => invoke<void>('cmd_restore_backup', { backupPath }),
+  },
+
+  indicator: {
+    buat:          (input: IndicatorInput)           => invoke<number>('cmd_buat_indicator', { input }),
+    ambil:         (id: number)                      => invoke<Indicator>('cmd_ambil_indicator', { id }),
+    daftar:        ()                                => invoke<Indicator[]>('cmd_daftar_indicator'),
+    ubah:          (id: number, input: IndicatorInput) => invoke<void>('cmd_ubah_indicator', { id, input }),
+    arsipkan:      (id: number)                      => invoke<void>('cmd_arsipkan_indicator', { id }),
+    hitung:        (indicatorId: number, period: string) => invoke<number>('cmd_hitung_indicator', { indicatorId, period }),
+    hasil:         (indicatorId: number, period: string) => invoke<HasilIndikator[]>('cmd_hasil_indicator', { indicatorId, period }),
+    jumlahUsang:   ()                                => invoke<number>('cmd_jumlah_usang'),
+    hitungUlang:   ()                                => invoke<number>('cmd_hitung_ulang_usang'),
+  },
+  labelItem: {
+    semua:             ()                            => invoke<LabelItem[]>('cmd_daftar_semua_label'),
+    beriVariabel:      (variableId: number, labelName: string) => invoke<void>('cmd_beri_label_variabel', { variableId, labelName }),
+    cabutVariabel:     (variableId: number, labelName: string) => invoke<void>('cmd_cabut_label_variabel', { variableId, labelName }),
+    daftarVariabel:    (variableId: number)          => invoke<LabelItem[]>('cmd_label_variabel', { variableId }),
+    beriIndikator:     (indicatorId: number, labelName: string) => invoke<void>('cmd_beri_label_indikator', { indicatorId, labelName }),
+    cabutIndikator:    (indicatorId: number, labelName: string) => invoke<void>('cmd_cabut_label_indikator', { indicatorId, labelName }),
+    daftarIndikator:   (indicatorId: number)         => invoke<LabelItem[]>('cmd_label_indikator', { indicatorId }),
+    entitasSektoral:   ()                            => invoke<EntitasSektoral>('cmd_entitas_sektoral'),
+  },
+  mapping: {
+    buat:   (input: MappingInput)                    => invoke<number>('cmd_buat_mapping', { input }),
+    ubah:   (id: number, input: MappingInput)        => invoke<void>('cmd_ubah_mapping', { id, input }),
+    hapus:  (id: number)                             => invoke<void>('cmd_hapus_mapping', { id }),
+    daftar: (profileId: string)                      => invoke<Mapping[]>('cmd_daftar_mapping', { profileId }),
+  },
+  sdi: {
+    susunLembar:       (profileId: string, periodValue: string, regionId: number) =>
+      invoke<SelLembar[]>('cmd_susun_lembar', { profileId, periodValue, regionId }),
+    tandaiSel:         (input: TandaiSelInput)       => invoke<void>('cmd_tandai_sel', { input }),
+    batalTandai:       (profileId: string, periodValue: string, bidang: string, subBidang: string, kategori: string, judulKolom: string) =>
+      invoke<void>('cmd_batal_tandai_sel', { profileId, periodValue, bidang, subBidang, kategori, judulKolom }),
+    ringkasan:         (profileId: string, periodValue: string, regionId: number) =>
+      invoke<RingkasanLembar>('cmd_ringkasan_lembar', { profileId, periodValue, regionId }),
+    catatSubmission:   (input: SubmissionInput)      => invoke<number>('cmd_catat_submission', { input }),
+    daftarSubmission:  (profileId: string, periodValue: string) =>
+      invoke<Submission[]>('cmd_daftar_submission', { profileId, periodValue }),
+    eksporCsv:         (profileId: string, periodValue: string, regionId: number) =>
+      invoke<string>('cmd_ekspor_csv', { profileId, periodValue, regionId }),
+    eksporJson:        (profileId: string, periodValue: string, regionId: number) =>
+      invoke<unknown>('cmd_ekspor_json', { profileId, periodValue, regionId }),
   },
   impor: {
     inspeksiFile:   (path: string) =>
