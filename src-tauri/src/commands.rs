@@ -25,6 +25,11 @@ use crate::database::{
     },
     unit_service,
     variable_service,
+    indicator_service::{self, Indicator, IndicatorInput, HasilIndikator},
+    label_service::{self, Label as LabelItem, EntitasSektoral},
+    mapping_service::{self, Mapping, MappingInput},
+    sdi_service::{self, SelLembar, TandaiSelInput, SubmissionInput, Submission, RingkasanLembar},
+    export_service,
 };
 
 // ============================================================
@@ -583,4 +588,312 @@ pub fn cmd_ubah_observasi(
     })?;
     tx.commit().map_err(|e| format!("Gagal commit ubah observasi: {e}"))?;
     Ok(())
+}
+
+// ============================================================
+// INDICATOR
+// ============================================================
+
+#[tauri::command]
+pub fn cmd_buat_indicator(
+    state: State<DbState>,
+    input: IndicatorInput,
+) -> Result<i64, String> {
+    let conn = kunci!(state);
+    indicator_service::buat(&conn, &input)
+}
+
+#[tauri::command]
+pub fn cmd_ambil_indicator(
+    state: State<DbState>,
+    id: i64,
+) -> Result<Indicator, String> {
+    let conn = kunci!(state);
+    indicator_service::ambil(&conn, id)
+}
+
+#[tauri::command]
+pub fn cmd_daftar_indicator(state: State<DbState>) -> Result<Vec<Indicator>, String> {
+    let conn = kunci!(state);
+    indicator_service::daftar(&conn)
+}
+
+#[tauri::command]
+pub fn cmd_ubah_indicator(
+    state: State<DbState>,
+    id: i64,
+    input: IndicatorInput,
+) -> Result<(), String> {
+    let conn = kunci!(state);
+    indicator_service::ubah(&conn, id, &input)
+}
+
+#[tauri::command]
+pub fn cmd_arsipkan_indicator(
+    state: State<DbState>,
+    id: i64,
+) -> Result<(), String> {
+    let conn = kunci!(state);
+    indicator_service::arsipkan(&conn, id)
+}
+
+#[tauri::command]
+pub fn cmd_hitung_indicator(
+    state: State<DbState>,
+    indicator_id: i64,
+    period: String,
+) -> Result<usize, String> {
+    let conn = kunci!(state);
+    indicator_service::hitung(&conn, indicator_id, &period)
+}
+
+#[tauri::command]
+pub fn cmd_hasil_indicator(
+    state: State<DbState>,
+    indicator_id: i64,
+    period: String,
+) -> Result<Vec<HasilIndikator>, String> {
+    let conn = kunci!(state);
+    indicator_service::hasil(&conn, indicator_id, &period)
+}
+
+#[tauri::command]
+pub fn cmd_jumlah_usang(state: State<DbState>) -> Result<i64, String> {
+    let conn = kunci!(state);
+    indicator_service::jumlah_usang(&conn)
+}
+
+#[tauri::command]
+pub fn cmd_hitung_ulang_usang(state: State<DbState>) -> Result<usize, String> {
+    let conn = kunci!(state);
+    indicator_service::hitung_ulang_usang(&conn)
+}
+
+// ============================================================
+// LABEL (TAHAP 3: variabel dan indikator)
+// ============================================================
+
+#[tauri::command]
+pub fn cmd_daftar_semua_label(state: State<DbState>) -> Result<Vec<LabelItem>, String> {
+    let conn = kunci!(state);
+    label_service::daftar_semua(&conn)
+}
+
+#[tauri::command]
+pub fn cmd_beri_label_variabel(
+    state: State<DbState>,
+    variable_id: i64,
+    label_name: String,
+) -> Result<(), String> {
+    let conn = kunci!(state);
+    label_service::beri_label_variabel(&conn, variable_id, &label_name)
+}
+
+#[tauri::command]
+pub fn cmd_cabut_label_variabel(
+    state: State<DbState>,
+    variable_id: i64,
+    label_name: String,
+) -> Result<(), String> {
+    let conn = kunci!(state);
+    label_service::cabut_label_variabel(&conn, variable_id, &label_name)
+}
+
+#[tauri::command]
+pub fn cmd_label_variabel(
+    state: State<DbState>,
+    variable_id: i64,
+) -> Result<Vec<LabelItem>, String> {
+    let conn = kunci!(state);
+    label_service::label_variabel(&conn, variable_id)
+}
+
+#[tauri::command]
+pub fn cmd_beri_label_indikator(
+    state: State<DbState>,
+    indicator_id: i64,
+    label_name: String,
+) -> Result<(), String> {
+    let conn = kunci!(state);
+    label_service::beri_label_indikator(&conn, indicator_id, &label_name)
+}
+
+#[tauri::command]
+pub fn cmd_cabut_label_indikator(
+    state: State<DbState>,
+    indicator_id: i64,
+    label_name: String,
+) -> Result<(), String> {
+    let conn = kunci!(state);
+    label_service::cabut_label_indikator(&conn, indicator_id, &label_name)
+}
+
+#[tauri::command]
+pub fn cmd_label_indikator(
+    state: State<DbState>,
+    indicator_id: i64,
+) -> Result<Vec<LabelItem>, String> {
+    let conn = kunci!(state);
+    label_service::label_indikator(&conn, indicator_id)
+}
+
+#[tauri::command]
+pub fn cmd_entitas_sektoral(state: State<DbState>) -> Result<EntitasSektoral, String> {
+    let conn = kunci!(state);
+    label_service::entitas_sektoral(&conn)
+}
+
+// ============================================================
+// PORTAL MAPPING
+// ============================================================
+
+#[tauri::command]
+pub fn cmd_buat_mapping(
+    state: State<DbState>,
+    input: MappingInput,
+) -> Result<i64, String> {
+    let conn = kunci!(state);
+    mapping_service::buat(&conn, &input)
+}
+
+#[tauri::command]
+pub fn cmd_ubah_mapping(
+    state: State<DbState>,
+    id: i64,
+    input: MappingInput,
+) -> Result<(), String> {
+    let conn = kunci!(state);
+    mapping_service::ubah(&conn, id, &input)
+}
+
+#[tauri::command]
+pub fn cmd_hapus_mapping(
+    state: State<DbState>,
+    id: i64,
+) -> Result<(), String> {
+    let conn = kunci!(state);
+    mapping_service::hapus(&conn, id)
+}
+
+#[tauri::command]
+pub fn cmd_daftar_mapping(
+    state: State<DbState>,
+    profile_id: String,
+) -> Result<Vec<Mapping>, String> {
+    let conn = kunci!(state);
+    mapping_service::daftar_profil(&conn, &profile_id)
+}
+
+// ============================================================
+// SDI WORKBENCH
+// ============================================================
+
+#[tauri::command]
+pub fn cmd_susun_lembar(
+    state: State<DbState>,
+    profile_id: String,
+    period_value: String,
+    region_id: i64,
+) -> Result<Vec<SelLembar>, String> {
+    let conn = kunci!(state);
+    sdi_service::susun_lembar(&conn, &profile_id, &period_value, region_id)
+}
+
+#[tauri::command]
+pub fn cmd_tandai_sel(
+    state: State<DbState>,
+    input: TandaiSelInput,
+) -> Result<(), String> {
+    let conn = kunci!(state);
+    sdi_service::tandai_sel(&conn, &input)
+}
+
+#[tauri::command]
+pub fn cmd_batal_tandai_sel(
+    state: State<DbState>,
+    profile_id: String,
+    period_value: String,
+    bidang: String,
+    sub_bidang: String,
+    kategori: String,
+    judul_kolom: String,
+) -> Result<(), String> {
+    let conn = kunci!(state);
+    sdi_service::batal_tandai_sel(
+        &conn, &profile_id, &period_value,
+        &bidang, &sub_bidang, &kategori, &judul_kolom,
+    )
+}
+
+#[tauri::command]
+pub fn cmd_tandai_perlu_diperbarui(
+    state: State<DbState>,
+    profile_id: String,
+    period_value: String,
+    source_type: String,
+    source_ref: String,
+) -> Result<usize, String> {
+    let conn = kunci!(state);
+    sdi_service::tandai_perlu_diperbarui(
+        &conn, &profile_id, &period_value, &source_type, &source_ref,
+    )
+}
+
+#[tauri::command]
+pub fn cmd_ringkasan_lembar(
+    state: State<DbState>,
+    profile_id: String,
+    period_value: String,
+    region_id: i64,
+) -> Result<RingkasanLembar, String> {
+    let conn = kunci!(state);
+    let lembar = sdi_service::susun_lembar(&conn, &profile_id, &period_value, region_id)?;
+    Ok(sdi_service::ringkasan(&lembar))
+}
+
+#[tauri::command]
+pub fn cmd_catat_submission(
+    state: State<DbState>,
+    input: SubmissionInput,
+) -> Result<i64, String> {
+    let conn = kunci!(state);
+    sdi_service::catat_submission(&conn, &input)
+}
+
+#[tauri::command]
+pub fn cmd_daftar_submission(
+    state: State<DbState>,
+    profile_id: String,
+    period_value: String,
+) -> Result<Vec<Submission>, String> {
+    let conn = kunci!(state);
+    sdi_service::daftar_submission(&conn, &profile_id, &period_value)
+}
+
+// ============================================================
+// EKSPOR
+// ============================================================
+
+#[tauri::command]
+pub fn cmd_ekspor_csv(
+    state: State<DbState>,
+    profile_id: String,
+    period_value: String,
+    region_id: i64,
+) -> Result<String, String> {
+    let conn = kunci!(state);
+    let lembar = sdi_service::susun_lembar(&conn, &profile_id, &period_value, region_id)?;
+    Ok(export_service::ke_csv(&lembar))
+}
+
+#[tauri::command]
+pub fn cmd_ekspor_json(
+    state: State<DbState>,
+    profile_id: String,
+    period_value: String,
+    region_id: i64,
+) -> Result<serde_json::Value, String> {
+    let conn = kunci!(state);
+    let lembar = sdi_service::susun_lembar(&conn, &profile_id, &period_value, region_id)?;
+    Ok(export_service::ke_json(&lembar))
 }
