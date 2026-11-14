@@ -10,3 +10,5 @@ pub mod import_service;
 pub mod validation_service;
 pub mod indicator_service;
 pub mod label_service;
+pub mod portal_service;
+pub mod mapping_service;
