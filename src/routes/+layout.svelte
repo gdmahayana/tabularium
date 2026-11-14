@@ -9,6 +9,7 @@
     { href: '/impor',      label: 'Impor Data' },
     { href: '/indikator',   label: 'Indikator' },
     { href: '/sdi',         label: 'Lembar Input SDI' },
+    { href: '/pemetaan',    label: 'Pemetaan Portal' },
   ];
 </script>
 
@@ -32,7 +33,7 @@
       {/each}
     </nav>
     <div class="px-4 py-3 text-xs border-t" style="color:var(--muted);border-color:var(--border)">
-      v0.1.0 · Tahap 2
+      v0.1.0 · Tahap 3
     </div>
   </aside>
 

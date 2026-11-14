@@ -97,7 +97,7 @@
   onMount(async () => { await muat_wilayah(); await muat_lembar(); });
 </script>
 
-<div class="p-6 max-w-5xl">
+<div class="p-6 w-full">
   <!-- Header -->
   <div class="flex items-start justify-between mb-4">
     <div>

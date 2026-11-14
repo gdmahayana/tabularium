@@ -127,7 +127,7 @@
   onMount(muat);
 </script>
 
-<div class="p-6 max-w-5xl">
+<div class="p-6 w-full">
   <div class="flex items-center justify-between mb-6">
     <div>
       <h1 class="text-xl font-semibold">Indikator</h1>
