@@ -79,5 +79,5 @@ def read_excel_file(path, min_text=3):
             df = read_messy_sheet(ws, min_text)
             source = "messy"
         res[name] = df
-        print(f"  Sheet [{name}] ({source}): {len(df)} baris x {len(df.columns)} kolom — {list(df.columns)}")
+        import sys; print(f"  Sheet [{name}] ({source}): {len(df)} baris x {len(df.columns)} kolom — {list(df.columns)}", file=sys.stderr)
     return res
