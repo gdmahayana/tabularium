@@ -25,10 +25,21 @@ def read_messy_sheet(ws, min_text=3):
     """Fallback: baca sheet tidak terstruktur (bukan template TABULARIUM)."""
     rows = list(ws.iter_rows(values_only=True))
     best_i, best_score = 0, 0
+    SKIP_HEADER = re.compile(r"(subtotal|total|rekapitulasi|sumber|keterangan)", re.IGNORECASE)
     for i, row in enumerate(rows[:10]):
-        if _is_skip(row):
+        # untuk kandidat header: skip hanya baris judul/total, bukan nama kolom biasa
+        vals = " ".join(str(v) for v in row if v is not None)
+        if SKIP_HEADER.search(vals):
             continue
-        score = sum(1 for v in row if v is not None and isinstance(v, str) and v.strip())
+        str_count = sum(1 for v in row if v is not None and isinstance(v, str) and v.strip())
+        num_count = sum(1 for v in row if isinstance(v, (int, float)))
+        # baris header biasanya lebih banyak teks daripada angka
+        if str_count <= num_count:
+            continue
+        # minimal 2 kolom teks agar tidak salah ambil baris judul
+        if str_count < 2:
+            continue
+        score = str_count
         if score > best_score:
             best_score, best_i = score, i
     hdr = []
