@@ -897,3 +897,78 @@ pub fn cmd_ekspor_json(
     let lembar = sdi_service::susun_lembar(&conn, &profile_id, &period_value, region_id)?;
     Ok(export_service::ke_json(&lembar))
 }
+
+// ============================================================
+// UTILITAS IMPOR
+// ============================================================
+
+#[tauri::command]
+pub fn cmd_baca_jsonl(path: String) -> Result<Vec<serde_json::Value>, String> {
+    use std::io::BufRead;
+    let file = std::fs::File::open(&path)
+        .map_err(|e| format!("Gagal membuka file {path}: {e}"))?;
+    let reader = std::io::BufReader::new(file);
+    let mut rows = vec![];
+    for line in reader.lines() {
+        let line = line.map_err(|e| format!("Gagal membaca baris: {e}"))?;
+        let line = line.trim().to_string();
+        if line.is_empty() { continue; }
+        let val: serde_json::Value = serde_json::from_str(&line)
+            .map_err(|e| format!("Baris JSONL tidak valid: {e}"))?;
+        rows.push(val);
+    }
+    Ok(rows)
+}
+
+#[tauri::command]
+pub fn cmd_match_units(
+    state: State<DbState>,
+    names: Vec<String>,
+    units: Vec<serde_json::Value>,
+) -> Result<Vec<serde_json::Value>, String> {
+    // Cocokkan nama wilayah dari file ke unit wilayah di database.
+    // Strategi: exact match (case-insensitive) dulu, lalu fuzzy (contains).
+    use serde_json::json;
+    let mut hasil = vec![];
+    for name in &names {
+        let name_lower = name.trim().to_lowercase();
+        // Cari exact match
+        let exact = units.iter().find(|u| {
+            u["name"].as_str()
+                .map(|n| n.trim().to_lowercase() == name_lower)
+                .unwrap_or(false)
+        });
+        if let Some(u) = exact {
+            hasil.push(json!({
+                "source_name": name,
+                "unit_id": u["id"],
+                "unit_name": u["name"],
+                "match_kind": "persis",
+            }));
+            continue;
+        }
+        // Fuzzy: contains
+        let fuzzy = units.iter().find(|u| {
+            u["name"].as_str()
+                .map(|n| n.trim().to_lowercase().contains(&name_lower)
+                      || name_lower.contains(&n.trim().to_lowercase()))
+                .unwrap_or(false)
+        });
+        if let Some(u) = fuzzy {
+            hasil.push(json!({
+                "source_name": name,
+                "unit_id": u["id"],
+                "unit_name": u["name"],
+                "match_kind": "normalisasi",
+            }));
+        } else {
+            hasil.push(json!({
+                "source_name": name,
+                "unit_id": null,
+                "unit_name": null,
+                "match_kind": "tidak_cocok",
+            }));
+        }
+    }
+    Ok(hasil)
+}

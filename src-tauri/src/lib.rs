@@ -73,6 +73,8 @@ pub fn run() {
             commands::cmd_daftar_submission,
             commands::cmd_ekspor_csv,
             commands::cmd_ekspor_json,
+            commands::cmd_baca_jsonl,
+            commands::cmd_match_units,
         ])
         .setup(|app| {
             let data_dir = app.path().app_data_dir()
