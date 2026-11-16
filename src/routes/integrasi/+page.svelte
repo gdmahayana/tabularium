@@ -1,0 +1,8 @@
+<div class="p-6">
+  <h1 class="text-xl font-semibold mb-1">Integrasi Data</h1>
+  <p class="text-sm mb-6" style="color:var(--muted)">Ekspor data dan hubungkan dengan sistem lain.</p>
+  <div class="rounded-lg border p-10 text-center" style="border-color:var(--border)">
+    <p class="font-medium mb-1">Segera hadir</p>
+    <p class="text-sm" style="color:var(--muted)">Ekspor lanjutan dan integrasi sistem tersedia di Tahap berikutnya.</p>
+  </div>
+</div>
