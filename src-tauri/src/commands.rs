@@ -972,3 +972,106 @@ pub fn cmd_match_units(
     }
     Ok(hasil)
 }
+
+// ============================================================
+// OBSERVASI
+// ============================================================
+
+#[tauri::command]
+pub fn cmd_daftar_observasi(
+    state: State<DbState>,
+    dataset_id: i64,
+    period_value: Option<String>,
+    limit: Option<i64>,
+) -> Result<serde_json::Value, String> {
+    let conn = kunci!(state);
+    let lim = limit.unwrap_or(500);
+    let err = |e: rusqlite::Error| format!("Kesalahan database: {e}");
+
+    let periods: Vec<String> = conn
+        .prepare("SELECT DISTINCT period_value FROM observation WHERE dataset_id=?1 ORDER BY period_value DESC")
+        .map_err(err)?
+        .query_map(rusqlite::params![dataset_id], |r| r.get(0))
+        .map_err(err)?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(err)?;
+
+    let period = period_value
+        .unwrap_or_else(|| periods.first().cloned().unwrap_or_default());
+
+    let variabel: Vec<(i64, String, String)> = conn
+        .prepare("SELECT id, name, code FROM variable WHERE dataset_id=?1 AND archived_at IS NULL ORDER BY sort_order")
+        .map_err(err)?
+        .query_map(rusqlite::params![dataset_id], |r| {
+            Ok((r.get(0)?, r.get(1)?, r.get(2)?))
+        })
+        .map_err(err)?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(err)?;
+
+    type RawRow = (i64, String, String, i64, Option<f64>, Option<String>, String);
+    let raw: Vec<RawRow> = conn
+        .prepare(
+            "SELECT o.unit_id, u.name, u.level, o.variable_id,
+                    o.value_num, o.value_text, o.value_status
+             FROM observation o
+             JOIN ref_unit u ON u.id = o.unit_id
+             WHERE o.dataset_id=?1 AND o.period_value=?2 AND o.dimension_value_id=0
+             ORDER BY CASE u.level WHEN 'kabupaten' THEN 0 WHEN 'kecamatan' THEN 1 ELSE 2 END,
+                      u.name, o.variable_id
+             LIMIT ?3",
+        )
+        .map_err(err)?
+        .query_map(rusqlite::params![dataset_id, period, lim], |r| {
+            Ok((r.get(0)?, r.get(1)?, r.get(2)?, r.get(3)?, r.get(4)?, r.get(5)?, r.get(6)?))
+        })
+        .map_err(err)?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(err)?;
+
+    let mut unit_map: std::collections::BTreeMap<
+        (i64, String, String),
+        std::collections::HashMap<i64, serde_json::Value>,
+    > = std::collections::BTreeMap::new();
+
+    for (uid, uname, ulevel, var_id, val_num, val_text, val_status) in raw {
+        let entry = unit_map.entry((uid, uname, ulevel)).or_default();
+        let val = if val_status == "terisi" {
+            if let Some(n) = val_num {
+                serde_json::json!(n)
+            } else if let Some(t) = val_text {
+                serde_json::json!(t)
+            } else {
+                serde_json::Value::Null
+            }
+        } else {
+            serde_json::json!(val_status)
+        };
+        entry.insert(var_id, val);
+    }
+
+    let baris: Vec<serde_json::Value> = unit_map
+        .into_iter()
+        .map(|((uid, uname, ulevel), vals)| {
+            let mut obj = serde_json::json!({
+                "unit_id": uid,
+                "unit_name": uname,
+                "unit_level": ulevel,
+            });
+            for v in &variabel {
+                obj[&v.2] = vals.get(&v.0).cloned().unwrap_or(serde_json::Value::Null);
+            }
+            obj
+        })
+        .collect();
+
+    Ok(serde_json::json!({
+        "periods": periods,
+        "period": period,
+        "variabel": variabel.iter().map(|v| serde_json::json!({
+            "id": v.0, "name": v.1, "code": v.2
+        })).collect::<Vec<_>>(),
+        "baris": baris,
+        "total": baris.len(),
+    }))
+}

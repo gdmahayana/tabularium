@@ -75,6 +75,7 @@ pub fn run() {
             commands::cmd_ekspor_json,
             commands::cmd_baca_jsonl,
             commands::cmd_match_units,
+            commands::cmd_daftar_observasi,
         ])
         .setup(|app| {
             let data_dir = app.path().app_data_dir()

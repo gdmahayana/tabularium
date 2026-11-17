@@ -320,6 +320,12 @@ export const api = {
     hapus:  (id: number)                             => invoke<void>('cmd_hapus_mapping', { id }),
     daftar: (profileId: string)                      => invoke<Mapping[]>('cmd_daftar_mapping', { profileId }),
   },
+  observasi: {
+    daftar: (datasetId: number, periodValue?: string, limit?: number) =>
+      invoke<{periods: string[]; period: string; variabel: {id:number;name:string;code:string}[]; baris: Record<string,unknown>[]; total: number}>(
+        'cmd_daftar_observasi', { datasetId, periodValue, limit }
+      ),
+  },
   sdi: {
     susunLembar:       (profileId: string, periodValue: string, regionId: number) =>
       invoke<SelLembar[]>('cmd_susun_lembar', { profileId, periodValue, regionId }),

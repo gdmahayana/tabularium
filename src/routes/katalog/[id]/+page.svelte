@@ -8,7 +8,10 @@
   let dataset   = $state<Dataset | null>(null);
   let variabel  = $state<Variable[]>([]);
   let audit     = $state<EntriAuditLog[]>([]);
-  let tab       = $state<'variabel' | 'riwayat'>('variabel');
+  let tab       = $state<'variabel' | 'data' | 'riwayat'>('variabel');
+  let obs_period = $state('');
+  let obs = $state<{periods:string[];period:string;variabel:{id:number;name:string;code:string}[];baris:Record<string,unknown>[];total:number}|null>(null);
+  let obs_loading = $state(false);
   let loading   = $state(true);
   let error     = $state('');
 
@@ -109,9 +112,17 @@
 
     <!-- Tab -->
     <div class="flex gap-1 border-b mb-4" style="border-color:var(--border)">
-      {#each [['variabel','Variabel'], ['riwayat','Riwayat Perubahan']] as [val, label]}
+      {#each [['variabel','Variabel'], ['data','Data'], ['riwayat','Riwayat Perubahan']] as [val, label]}
         <button
-          onclick={() => tab = val as typeof tab}
+          onclick={async () => {
+            tab = val as typeof tab;
+            if (val === 'data' && !obs) {
+              obs_loading = true;
+              try { obs = await api.observasi.daftar(id); }
+              catch (err) { error = String(err); }
+              finally { obs_loading = false; }
+            }
+          }}
           class="px-4 py-2 text-sm border-b-2 transition-colors -mb-px
                  {tab === val ? 'border-blue-600 text-blue-700 font-medium' : 'border-transparent text-gray-500 hover:text-gray-700'}"
         >{label}</button>
@@ -217,6 +228,76 @@
                       Arsipkan
                     </button>
                   </td>
+                </tr>
+              {/each}
+            </tbody>
+          </table>
+        </div>
+      {/if}
+
+    <!-- Tab: Data -->
+    {:else if tab === 'data'}
+      <div class="mb-4 flex items-center gap-3">
+        <span class="text-sm" style="color:var(--muted)">Periode:</span>
+        <select
+          onchange={async (e) => {
+            obs_period = (e.target as HTMLSelectElement).value;
+            obs_loading = true;
+            try { obs = await api.observasi.daftar(id, obs_period); }
+            catch (err) { error = String(err); }
+            finally { obs_loading = false; }
+          }}
+          class="border rounded px-2 py-1 text-sm" style="border-color:var(--border)">
+          {#if obs}
+            {#each obs.periods as p}
+              <option value={p} selected={p === obs.period}>{p}</option>
+            {/each}
+          {:else}
+            <option>—</option>
+          {/if}
+        </select>
+        <span class="text-xs" style="color:var(--muted)">
+          {obs ? obs.total + ' baris' : ''}
+        </span>
+      </div>
+
+      {#if obs_loading}
+        <p class="text-sm" style="color:var(--muted)">Memuat data...</p>
+      {:else if !obs || obs.baris.length === 0}
+        <div class="rounded-lg border p-8 text-center" style="border-color:var(--border)">
+          <p class="text-sm" style="color:var(--muted)">
+            Belum ada data. Impor data lewat menu Pengumpulan Data.
+          </p>
+        </div>
+      {:else}
+        <div class="border rounded-lg overflow-auto" style="border-color:var(--border)">
+          <table class="w-full text-sm">
+            <thead style="background:var(--surface)">
+              <tr>
+                <th class="text-left px-4 py-2.5 font-medium sticky left-0" style="background:var(--surface)">Wilayah</th>
+                <th class="text-left px-4 py-2.5 font-medium text-xs" style="color:var(--muted)">Tingkat</th>
+                {#each obs.variabel as v}
+                  <th class="text-right px-4 py-2.5 font-medium">{v.name}</th>
+                {/each}
+              </tr>
+            </thead>
+            <tbody>
+              {#each obs.baris as baris}
+                <tr class="border-t {baris.unit_level === 'kabupaten' ? 'bg-blue-50 font-medium' : baris.unit_level === 'kecamatan' ? 'bg-gray-50' : ''}"
+                  style="border-color:var(--border)">
+                  <td class="px-4 py-2 sticky left-0 {baris.unit_level === 'kabupaten' ? 'bg-blue-50' : baris.unit_level === 'kecamatan' ? 'bg-gray-50' : 'bg-white'}">
+                    {baris.unit_name}
+                  </td>
+                  <td class="px-4 py-2 text-xs" style="color:var(--muted)">{baris.unit_level}</td>
+                  {#each obs.variabel as v}
+                    <td class="px-4 py-2 text-right font-mono text-xs">
+                      {#if baris[v.code] === null || baris[v.code] === undefined}
+                        <span style="color:var(--muted)">—</span>
+                      {:else}
+                        {baris[v.code]}
+                      {/if}
+                    </td>
+                  {/each}
                 </tr>
               {/each}
             </tbody>
