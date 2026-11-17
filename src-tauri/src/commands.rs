@@ -51,7 +51,17 @@ impl DbState {
             .map(|p| p.to_string_lossy().to_string())
             .unwrap_or_else(|| "tabularium-sidecar".to_string());
         let sidecar = Sidecar::spawn(&sidecar_exe).ok();
-        Ok(Self { conn: Mutex::new(conn), db_path, backup_dir, sidecar })
+        // Seed wilayah Karangasem — hanya jika belum ada (INSERT OR IGNORE)
+        if let Ok(n) = conn.query_row(
+            "SELECT COUNT(*) FROM ref_unit WHERE code='5108'", [], |r| r.get::<_,i64>(0)
+) {
+if n == 0 {
+let _ = conn.execute_batch(
+include_str!("../migrations/0007_seed_wilayah_karangasem.sql")
+);
+}
+}
+Ok(Self { conn: Mutex::new(conn), db_path, backup_dir, sidecar })
     }
 }
 
