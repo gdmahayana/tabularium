@@ -107,6 +107,21 @@
     langkah = "pilih_file";
     hasilKomit = null;
   }
+  let tmpl_dataset_id = $state(0);
+  let tmpl_period = $state('');
+  let tmpl_loading = $state(false);
+  let tmpl_pesan = $state('');
+
+  async function unduh_template() {
+    if (!tmpl_dataset_id) { tmpl_pesan = 'Pilih dataset dulu.'; return; }
+    tmpl_loading = true; tmpl_pesan = '';
+    try {
+      const path = await api.template.generate(tmpl_dataset_id, tmpl_period || undefined);
+      await invoke('cmd_buka_file', { path }).catch(() => {});
+      tmpl_pesan = 'Template disimpan di: ' + (path as string).split('/').pop();
+    } catch (e) { tmpl_pesan = String(e); }
+    finally { tmpl_loading = false; }
+  }
 </script>
 
 <div class="p-6 max-w-3xl mx-auto">
@@ -119,6 +134,42 @@
   <!-- Langkah 1: Pilih File -->
   {#if langkah === "pilih_file"}
     <div class="space-y-4">
+      <!-- Unduh Template -->
+      <div class="rounded-lg border p-4" style="background:var(--surface);border-color:var(--border)">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="text-sm font-medium">📋 Unduh Template Excel</span>
+          <span class="text-xs" style="color:var(--muted)">— isi data sesuai format ini lalu impor kembali</span>
+        </div>
+        <div class="flex gap-2 items-end flex-wrap">
+          <label class="block">
+            <span class="text-xs text-gray-600">Dataset</span>
+            <select bind:value={tmpl_dataset_id}
+              class="mt-1 block border rounded px-2 py-1.5 text-sm" style="border-color:var(--border)">
+              <option value={0}>— pilih —</option>
+              {#each datasets as d}<option value={d.id}>{d.name}</option>{/each}
+            </select>
+          </label>
+          <label class="block">
+            <span class="text-xs text-gray-600">Periode (opsional)</span>
+            <input bind:value={tmpl_period} placeholder="mis. 2024"
+              class="mt-1 block border rounded px-2 py-1.5 text-sm w-28"
+              style="border-color:var(--border)" />
+          </label>
+          <button onclick={unduh_template} disabled={tmpl_loading || !tmpl_dataset_id}
+            class="px-3 py-1.5 text-sm border rounded-md disabled:opacity-50"
+            style="border-color:var(--border)">
+            {tmpl_loading ? 'Membuat...' : '⬇ Unduh Template'}
+          </button>
+        </div>
+        {#if tmpl_pesan}
+          <p class="mt-2 text-xs text-blue-600">{tmpl_pesan}</p>
+        {/if}
+      </div>
+
+      <div class="border-t pt-4" style="border-color:var(--border)">
+        <p class="text-sm font-medium mb-3">📂 Atau pilih file Excel yang sudah diisi:</p>
+      </div>
+
       <button onclick={pilihFile}
         class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
         Pilih File Excel

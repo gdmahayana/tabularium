@@ -320,6 +320,10 @@ export const api = {
     hapus:  (id: number)                             => invoke<void>('cmd_hapus_mapping', { id }),
     daftar: (profileId: string)                      => invoke<Mapping[]>('cmd_daftar_mapping', { profileId }),
   },
+  template: {
+    generate: (datasetId: number, periodValue?: string) =>
+      invoke<string>('cmd_generate_template', { datasetId, periodValue }),
+  },
   observasi: {
     daftar: (datasetId: number, periodValue?: string, limit?: number) =>
       invoke<{periods: string[]; period: string; variabel: {id:number;name:string;code:string}[]; baris: Record<string,unknown>[]; total: number}>(

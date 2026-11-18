@@ -1085,3 +1085,70 @@ pub fn cmd_daftar_observasi(
         "total": baris.len(),
     }))
 }
+
+#[tauri::command]
+pub fn cmd_generate_template(
+    state: State<DbState>,
+    dataset_id: i64,
+    period_value: Option<String>,
+) -> Result<String, String> {
+    let conn = kunci!(state);
+
+    let dataset: (String,) = conn
+        .query_row("SELECT name FROM dataset WHERE id=?1", rusqlite::params![dataset_id], |r| Ok((r.get(0)?,)))
+        .map_err(|_| "Dataset tidak ditemukan.".to_string())?;
+
+    let variabel: Vec<serde_json::Value> = {
+        let rows: Vec<(String, String, Option<String>)> = conn
+            .prepare(
+                "SELECT name, code, unit FROM variable
+                 WHERE dataset_id=?1 AND archived_at IS NULL ORDER BY sort_order",
+            )
+            .map_err(|e| format!("Kesalahan database: {e}"))?
+            .query_map(rusqlite::params![dataset_id], |r| {
+                Ok((r.get(0)?, r.get(1)?, r.get(2)?))
+            })
+            .map_err(|e| format!("Kesalahan database: {e}"))?
+            .collect::<Result<Vec<_>, _>>()
+            .map_err(|e| format!("Kesalahan database: {e}"))?;
+        rows.into_iter()
+            .map(|(name, code, unit)| serde_json::json!({
+                "name": name,
+                "code": code,
+                "unit": unit.unwrap_or_default(),
+            }))
+            .collect()
+    };
+
+    let out_path = std::env::temp_dir()
+        .join(format!("template_{}_{}.xlsx", dataset_id,
+            period_value.as_deref().unwrap_or("kosong")));
+
+    let sidecar = state.sidecar.as_ref()
+        .ok_or_else(|| "Sidecar tidak tersedia. Template Excel membutuhkan sidecar.".to_string())?;
+
+    sidecar.call("generate_template", serde_json::json!({
+        "dataset_name": dataset.0,
+        "period_value": period_value.unwrap_or_default(),
+        "columns": variabel,
+        "out_path": out_path.to_string_lossy(),
+    })).map_err(|e| format!("Gagal membuat template: {e}"))?;
+
+    Ok(out_path.to_string_lossy().to_string())
+}
+
+#[tauri::command]
+pub fn cmd_buka_file(path: String) -> Result<(), String> {
+    // Buka folder yang berisi file di file manager sistem
+    let folder = std::path::Path::new(&path)
+        .parent()
+        .map(|p| p.to_string_lossy().to_string())
+        .unwrap_or(path.clone());
+    #[cfg(target_os = "linux")]
+    std::process::Command::new("xdg-open").arg(&folder).spawn().ok();
+    #[cfg(target_os = "windows")]
+    std::process::Command::new("explorer").arg(&folder).spawn().ok();
+    #[cfg(target_os = "macos")]
+    std::process::Command::new("open").arg(&folder).spawn().ok();
+    Ok(())
+}
